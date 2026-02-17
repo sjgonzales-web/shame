@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DHT11 Dashboard</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.12);
+      --text: #e8ecf3;
+      --muted: #9aa4bf;
+      --accent: #6cf2c2;
+      --accent-2: #7aa2ff;
+      --success: #2de2a6;
+      --radius: 14px;
+      --blur: blur(10px);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(180deg, #0b1020 0%, #070b17 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Top Bar ── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(11,16,32,0.92);
+      backdrop-filter: var(--blur);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .topbar-brand {
+      font-weight: 700;
+      font-size: 1rem;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .topbar-divider { width: 1px; height: 32px; background: var(--border); }
+
+    .led-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    .led-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+
+    .led-btn:hover { background: rgba(255,255,255,0.12); }
+
+    .led-btn.active {
+      border-color: rgba(108,242,194,.5);
+      background: rgba(108,242,194,.12);
+      color: var(--accent);
+      box-shadow: 0 0 12px rgba(108,242,194,.2);
+    }
+
+    .led-dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      opacity: .4;
+      transition: opacity .2s, box-shadow .2s;
+    }
+
+    .led-btn.active .led-dot { opacity: 1; box-shadow: 0 0 8px currentColor; }
+
+    .led-btn.red   .led-dot { background: #ff6b6b; }
+    .led-btn.green .led-dot { background: #2de2a6; }
+    .led-btn.blue  .led-dot { background: #7aa2ff; }
+    .led-btn.yellow .led-dot{ background: #ffd166; }
+    .led-btn.white .led-dot { background: #e8ecf3; }
+
+    .quick-btns { display: flex; gap: 6px; }
+
+    .btn-all-off {
+      padding: 5px 12px; border-radius: 999px;
+      border: 1px solid rgba(255,107,107,.4);
+      background: rgba(255,107,107,.1);
+      color: #ff6b6b; font-size: .8rem; font-weight: 700; cursor: pointer; transition: all .2s;
+    }
+    .btn-all-on {
+      padding: 5px 12px; border-radius: 999px;
+      border: 1px solid rgba(45,226,166,.4);
+      background: rgba(45,226,166,.1);
+      color: var(--success); font-size: .8rem; font-weight: 700; cursor: pointer; transition: all .2s;
+    }
+    .btn-all-off:hover { background: rgba(255,107,107,.2); }
+    .btn-all-on:hover  { background: rgba(45,226,166,.2); }
+
+    .live-dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--success); animation: pulse 1.8s infinite; display: inline-block;
+    }
+
+    @keyframes pulse {
+      0%  { box-shadow: 0 0 0 0 rgba(45,226,166,.55); }
+      70% { box-shadow: 0 0 0 8px rgba(45,226,166,0); }
+      100%{ box-shadow: 0 0 0 0 rgba(45,226,166,0); }
+    }
+
+    .main { padding: 24px 20px 48px; max-width: 1100px; margin: 0 auto; }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-bottom: 20px;
+      backdrop-filter: var(--blur);
+    }
+
+    .filter-bar label { font-size: .8rem; color: var(--muted); font-weight: 600; margin-bottom: 4px; display: block; }
+
+    .filter-bar input,
+    .filter-bar select {
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      font-size: .85rem;
+      padding: 6px 10px;
+      width: 100%;
+    }
+
+    .filter-bar input:focus,
+    .filter-bar select:focus {
+      outline: none;
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 2px rgba(122,162,255,.2);
+    }
+
+    .quick-range { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+
+    .quick-range button {
+      padding: 4px 12px; border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.05);
+      color: var(--muted); font-size: .78rem; cursor: pointer; transition: all .2s;
+    }
+
+    .quick-range button:hover {
+      background: rgba(122,162,255,.15);
+      border-color: var(--accent-2);
+      color: var(--text);
+    }
+
+    .realtime-toggle {
+      display: flex; align-items: center; gap: 8px;
+      font-size: .82rem; color: var(--muted); cursor: pointer; user-select: none;
+    }
+    .realtime-toggle input { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+
+    /* ── Stat Cards ── */
+    .stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+    @media (max-width: 700px) { .stats-row { grid-template-columns: repeat(2,1fr); } }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 12px;
+      text-align: center;
+      backdrop-filter: var(--blur);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Current reading cards get a live indicator */
+    .stat-card.live {
+      border-color: rgba(255,255,255,.2);
+      background: linear-gradient(135deg, rgba(255,255,255,.1), rgba(255,255,255,.04));
+    }
+
+    .stat-card.live::after {
+      content: 'LIVE';
+      position: absolute;
+      top: 8px; right: 10px;
+      font-size: .6rem;
+      font-weight: 800;
+      letter-spacing: .1em;
+      color: var(--success);
+      opacity: .85;
+    }
+
+    .stat-val { font-size: 1.7rem; font-weight: 800; }
+    .stat-val.t { color: #ff7b7b; }
+    .stat-val.h { color: var(--accent-2); }
+    .stat-label { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── Chart card ── */
+    .chart-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 20px;
+      backdrop-filter: var(--blur);
+    }
+    .chart-card h5 { font-size: .95rem; font-weight: 700; margin-bottom: 6px; }
+    .chart-meta { font-size: .78rem; color: var(--muted); margin-bottom: 14px; }
+
+    /* ── Table card ── */
+    .table-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      backdrop-filter: var(--blur);
+    }
+    .table-card h5 { font-size: .95rem; font-weight: 700; }
+
+    .table-controls {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      gap: 10px; flex-wrap: wrap; margin-bottom: 14px;
+    }
+
+    .table-controls input,
+    .table-controls select {
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: .82rem;
+    }
+
+    .table-controls input:focus,
+    .table-controls select:focus { outline: none; border-color: var(--accent-2); }
+
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    thead th {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted); font-weight: 600; font-size: .78rem;
+      text-transform: uppercase; letter-spacing: .08em; text-align: left;
+    }
+
+    tbody tr { border-bottom: 1px solid rgba(255,255,255,.04); transition: background .15s; }
+    tbody tr:hover { background: rgba(122,162,255,.07); }
+    tbody td { padding: 9px 12px; }
+
+    tbody tr.latest-row { background: rgba(45,226,166,.05); border-left: 2px solid var(--success); }
+
+    .badge-time {
+      font-family: 'Courier New', monospace; font-size: .78rem;
+      padding: 3px 8px; border-radius: 6px;
+      background: rgba(122,162,255,.12);
+      border: 1px solid rgba(122,162,255,.25); color: #c8d5ff;
+    }
+    .badge-temp {
+      padding: 3px 10px; border-radius: 999px;
+      background: rgba(255,107,107,.12);
+      border: 1px solid rgba(255,107,107,.3); color: #ffb1b1; font-weight: 700;
+    }
+    .badge-hum {
+      padding: 3px 10px; border-radius: 999px;
+      background: rgba(122,162,255,.12);
+      border: 1px solid rgba(122,162,255,.3); color: #c8d5ff; font-weight: 700;
+    }
+
+    .pagination-row {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 10px; margin-top: 14px;
+    }
+    .pagination-row small { color: var(--muted); font-size: .78rem; }
+    .page-btns { display: flex; align-items: center; gap: 8px; }
+    .page-btns button {
+      background: rgba(255,255,255,.06); border: 1px solid var(--border);
+      color: var(--text); border-radius: 8px; padding: 4px 12px;
+      font-size: .8rem; cursor: pointer; transition: all .2s;
+    }
+    .page-btns button:disabled { opacity: .35; cursor: not-allowed; }
+    .page-btns button:not(:disabled):hover { background: rgba(122,162,255,.15); border-color: var(--accent-2); }
+    .page-info { font-size: .82rem; color: var(--muted); }
+    .empty-state { text-align: center; padding: 32px; color: var(--muted); font-size: .9rem; }
+  </style>
+</head>
+<body>
+
+<!-- ── TOP BAR ── -->
+<div class="topbar">
+  <div class="topbar-brand">
+    🌡️ DHT11 Dashboard
+    <span class="live-dot"></span>
+  </div>
+  <div class="topbar-divider"></div>
+  <div class="led-group">
+    <span style="font-size:.78rem;color:var(--muted);font-weight:600;white-space:nowrap;">LEDs:</span>
+    <button class="led-btn red"    id="LED1-btn" onclick="toggleDevice('LED1')"><span class="led-dot"></span> 1</button>
+    <button class="led-btn green"  id="LED2-btn" onclick="toggleDevice('LED2')"><span class="led-dot"></span> 2</button>
+    <button class="led-btn blue"   id="LED3-btn" onclick="toggleDevice('LED3')"><span class="led-dot"></span> 3</button>
+    <button class="led-btn yellow" id="LED4-btn" onclick="toggleDevice('LED4')"><span class="led-dot"></span> 4</button>
+    <button class="led-btn white"  id="LED5-btn" onclick="toggleDevice('LED5')"><span class="led-dot"></span> 5</button>
+  </div>
+  <div class="topbar-divider"></div>
+  <div class="quick-btns">
+    <button class="btn-all-off" onclick="allOff()">All OFF</button>
+    <button class="btn-all-on"  onclick="allOn()">All ON</button>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+  <!-- Filter -->
+  <div class="filter-bar">
+    <div class="row g-2 align-items-end">
+      <div class="col-12 col-sm-auto">
+        <label>📅 Date</label>
+        <input type="date" id="dateInput" />
+      </div>
+      <div class="col-6 col-sm-auto">
+        <label>⏰ From</label>
+        <select id="startHour"><option value="">All</option></select>
+      </div>
+      <div class="col-6 col-sm-auto">
+        <label>⏰ To</label>
+        <select id="endHour"><option value="">All</option></select>
+      </div>
+      <div class="col-auto ms-auto">
+        <label class="realtime-toggle">
+          <input type="checkbox" id="realtimeToggle" checked>
+          Live updates
+        </label>
+      </div>
+    </div>
+    <div class="quick-range">
+      <span style="font-size:.78rem;color:var(--muted);">Quick:</span>
+      <button onclick="setRange(0,5)">Night</button>
+      <button onclick="setRange(6,11)">Morning</button>
+      <button onclick="setRange(12,17)">Afternoon</button>
+      <button onclick="setRange(18,23)">Evening</button>
+      <button onclick="setRange('','')">Full Day</button>
+    </div>
+  </div>
+
+  <!-- Stats — Current + Max -->
+  <div class="stats-row">
+    <div class="stat-card live">
+      <div class="stat-val t" id="curTemp">--</div>
+      <div class="stat-label">Current Temp (°C)</div>
+    </div>
+    <div class="stat-card live">
+      <div class="stat-val h" id="curHum">--</div>
+      <div class="stat-label">Current Humidity (%)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val t" id="maxTemp">--</div>
+      <div class="stat-label">Max Temp (°C)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val h" id="maxHum">--</div>
+      <div class="stat-label">Max Humidity (%)</div>
+    </div>
+  </div>
+
+  <!-- Chart -->
+  <div class="chart-card">
+    <h5>📈 Sensor Graph <span style="font-weight:400;color:var(--muted);">(1-min averages)</span></h5>
+    <div class="chart-meta" id="dataCount">Waiting for data…</div>
+    <canvas id="dhtChart" height="75"></canvas>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <div class="table-controls">
+      <h5>📋 History</h5>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input type="text" id="searchBox" placeholder="🔍 Search time…" style="width:160px;">
+        <select id="rowsPerPage">
+          <option value="10">10 rows</option>
+          <option value="25" selected>25 rows</option>
+          <option value="50">50 rows</option>
+          <option value="100">100 rows</option>
+          <option value="all">All</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Temperature</th>
+            <th>Humidity</th>
+          </tr>
+        </thead>
+        <tbody id="historyTable">
+          <tr><td colspan="3" class="empty-state">Select a date to view data</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="paginationControls" class="pagination-row" style="display:none;">
+      <small>Showing <span id="showingRange">0</span> of <span id="totalRows">0</span> entries</small>
+      <div class="page-btns">
+        <button id="prevPage" disabled>← Prev</button>
+        <span class="page-info">Page <span id="currentPage">1</span> / <span id="totalPages">1</span></span>
+        <button id="nextPage" disabled>Next →</button>
+      </div>
+    </div>
+
+    <div id="noData" class="empty-state" style="display:none;">📭 No data for selected filters.</div>
+  </div>
+
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyByPHN3USjnb8-F8qpkr4x7dsVPwcwlec8",
+    authDomain: "shame-john-gonzales.firebaseapp.com",
+    databaseURL: "https://shame-john-gonzales-default-rtdb.firebaseio.com",
+    projectId: "shame-john-gonzales",
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  // ── LED Controls ──
+  function toggleDevice(device) {
+    const btn = document.getElementById(`${device}-btn`);
+    const isOn = btn.classList.contains('active');
+    db.ref(`Controls/${device}`).set({ state: isOn ? 0 : 1, timestamp: Date.now() });
+  }
+
+  function allOff() {
+    ['LED1','LED2','LED3','LED4','LED5'].forEach(d =>
+      db.ref(`Controls/${d}`).set({ state: 0, timestamp: Date.now() })
+    );
+  }
+
+  function allOn() {
+    ['LED1','LED2','LED3','LED4','LED5'].forEach(d =>
+      db.ref(`Controls/${d}`).set({ state: 1, timestamp: Date.now() })
+    );
+  }
+
+  ['LED1','LED2','LED3','LED4','LED5'].forEach(device => {
+    db.ref(`Controls/${device}`).on('value', snap => {
+      const data = snap.val();
+      const btn = document.getElementById(`${device}-btn`);
+      if (!data || data.state === undefined) {
+        db.ref(`Controls/${device}`).set({ state: 0, timestamp: Date.now() });
+        return;
+      }
+      btn.classList.toggle('active', data.state === 1);
+    });
+  });
+
+  // ── Chart ──
+  const labels = [], tempData = [], humData = [];
+  const dhtChart = new Chart(document.getElementById('dhtChart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Temperature (°C)', data: tempData, borderColor: '#ff6b6b', backgroundColor: 'rgba(255,107,107,.1)', fill: true, tension: .4, pointRadius: 3, pointHoverRadius: 5 },
+        { label: 'Humidity (%)',      data: humData,  borderColor: '#4dabf7', backgroundColor: 'rgba(77,171,247,.1)',  fill: true, tension: .4, pointRadius: 3, pointHoverRadius: 5 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'top', labels: { color: '#9aa4bf', font: { size: 12 } } },
+        tooltip: { mode: 'index', intersect: false }
+      },
+      scales: {
+        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#9aa4bf' } },
+        x: { title: { display: true, text: 'Time (HH:MM)', color: '#9aa4bf' }, grid: { display: false }, ticks: { color: '#9aa4bf', maxTicksLimit: 12 } }
+      }
+    }
+  });
+
+  const dateInput      = document.getElementById('dateInput');
+  const startHour      = document.getElementById('startHour');
+  const endHour        = document.getElementById('endHour');
+  const realtimeToggle = document.getElementById('realtimeToggle');
+  const tbody          = document.getElementById('historyTable');
+  const searchBox      = document.getElementById('searchBox');
+  const rowsPerPage    = document.getElementById('rowsPerPage');
+  const prevBtn        = document.getElementById('prevPage');
+  const nextBtn        = document.getElementById('nextPage');
+  const pagControls    = document.getElementById('paginationControls');
+
+  let listener = null, allData = [], filtered = [], page = 1, rpp = 25;
+
+  dateInput.value = new Date().toISOString().split('T')[0];
+
+  for (let i = 0; i < 24; i++) {
+    const h = i.toString().padStart(2,'0');
+    startHour.innerHTML += `<option value="${h}">${h}:00</option>`;
+    endHour.innerHTML   += `<option value="${h}">${h}:59</option>`;
+  }
+
+  function setRange(s, e) {
+    startHour.value = s === '' ? '' : s.toString().padStart(2,'0');
+    endHour.value   = e === '' ? '' : e.toString().padStart(2,'0');
+    startListener();
+  }
+
+  function aggregateByMinute(data) {
+    const map = new Map();
+    [...data].reverse().forEach(p => {
+      const key = p.time.slice(0,5);
+      if (!map.has(key)) map.set(key, { temps:[], hums:[], ts: p.timestamp });
+      map.get(key).temps.push(p.temp);
+      map.get(key).hums.push(p.hum);
+    });
+    return [...map.entries()]
+      .map(([k,v]) => ({
+        time: k,
+        temp: parseFloat((v.temps.reduce((a,b)=>a+b,0)/v.temps.length).toFixed(1)),
+        hum:  parseFloat((v.hums.reduce((a,b)=>a+b,0)/v.hums.length).toFixed(1)),
+        timestamp: v.ts
+      }))
+      .sort((a,b) => a.timestamp - b.timestamp);
+  }
+
+  function startListener() {
+    const date = dateInput.value;
+    if (!date) return;
+    if (listener) listener.off();
+
+    labels.length = tempData.length = humData.length = 0;
+    allData = [];
+
+    listener = db.ref(`DHT11/${date}`);
+    listener.on('value', snap => {
+      if (!snap.exists()) { showEmpty(); return; }
+
+      const sh = startHour.value, eh = endHour.value;
+      const rows = [];
+
+      snap.forEach(hourNode => {
+        const h = parseInt(hourNode.key);
+        if (sh && h < parseInt(sh)) return;
+        if (eh && h > parseInt(eh)) return;
+        const hStr = hourNode.key;
+        hourNode.forEach(minNode => {
+          const m = minNode.key;
+          minNode.forEach(secNode => {
+            const s = secNode.key, d = secNode.val();
+            rows.push({ time:`${hStr}:${m}:${s}`, temp:d.temperature, hum:d.humidity, timestamp:new Date(`${date}T${hStr}:${m}:${s}`) });
+          });
+        });
+      });
+
+      if (!rows.length) { showEmpty(); return; }
+
+      // Sort newest-first — rows[0] is the latest reading
+      rows.sort((a,b) => b.timestamp - a.timestamp);
+      allData = rows; filtered = rows; page = 1;
+
+      const graphData = aggregateByMinute(rows);
+      labels.length = tempData.length = humData.length = 0;
+      graphData.forEach(p => { labels.push(p.time); tempData.push(p.temp); humData.push(p.hum); });
+
+      updateStats(rows);
+      dhtChart.update();
+      renderTable();
+
+      document.getElementById('noData').style.display = 'none';
+      document.getElementById('dataCount').textContent = `${graphData.length} minutes · ${rows.length} readings`;
+    });
+  }
+
+  function updateStats(data) {
+    // data is sorted newest-first, so data[0] is the most recent reading
+    const latest = data[0];
+    const temps = data.map(p => p.temp);
+    const hums  = data.map(p => p.hum);
+
+    document.getElementById('curTemp').textContent = latest.temp;
+    document.getElementById('curHum').textContent  = latest.hum;
+    document.getElementById('maxTemp').textContent = Math.max(...temps).toFixed(1);
+    document.getElementById('maxHum').textContent  = Math.max(...hums).toFixed(1);
+  }
+
+  function renderTable() {
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr><td colspan="3" class="empty-state">No matching data</td></tr>';
+      pagControls.style.display = 'none';
+      return;
+    }
+
+    const total = filtered.length;
+    const perPage = rpp === 'all' ? total : parseInt(rpp);
+    const pages = Math.ceil(total / perPage);
+    if (page > pages) page = pages;
+    if (page < 1) page = 1;
+
+    const start = (page-1)*perPage;
+    const end   = rpp === 'all' ? total : Math.min(start+perPage, total);
+    const slice = filtered.slice(start, end);
+
+    tbody.innerHTML = slice.map((p, i) => {
+      const isLatest = (start + i === 0);
+      return `
+        <tr${isLatest ? ' class="latest-row"' : ''}>
+          <td><span class="badge-time">${p.time}</span></td>
+          <td><span class="badge-temp">${p.temp}°C</span></td>
+          <td><span class="badge-hum">${p.hum}%</span></td>
+        </tr>
+      `;
+    }).join('');
+
+    document.getElementById('currentPage').textContent = page;
+    document.getElementById('totalPages').textContent  = pages;
+    document.getElementById('totalRows').textContent   = total;
+    document.getElementById('showingRange').textContent= `${start+1}–${end}`;
+    prevBtn.disabled = page === 1;
+    nextBtn.disabled = page === pages || rpp === 'all';
+    pagControls.style.display = rpp === 'all' ? 'none' : 'flex';
+  }
+
+  function showEmpty() {
+    document.getElementById('noData').style.display = 'block';
+    document.getElementById('dataCount').textContent = 'No data';
+    tbody.innerHTML = '<tr><td colspan="3" class="empty-state">No data for selected filters</td></tr>';
+    pagControls.style.display = 'none';
+    ['curTemp','curHum','maxTemp','maxHum'].forEach(id => document.getElementById(id).textContent = '--');
+  }
+
+  searchBox.addEventListener('input', () => {
+    const q = searchBox.value.toLowerCase();
+    filtered = q ? allData.filter(p=>p.time.includes(q)) : allData;
+    page = 1; renderTable();
+  });
+
+  rowsPerPage.addEventListener('change', () => { rpp = rowsPerPage.value; page=1; renderTable(); });
+  prevBtn.addEventListener('click', () => { if(page>1){page--;renderTable();} });
+  nextBtn.addEventListener('click', () => { const t=Math.ceil(filtered.length/parseInt(rpp)); if(page<t){page++;renderTable();} });
+
+  realtimeToggle.addEventListener('change', () => {
+    if (realtimeToggle.checked) startListener();
+    else { if(listener){listener.off();listener=null;} document.getElementById('dataCount').textContent += ' (paused)'; }
+  });
+
+  dateInput.addEventListener('change', startListener);
+  startHour.addEventListener('change', startListener);
+  endHour.addEventListener('change', startListener);
+
+  startListener();
+</script>
+</body>
+</html>
