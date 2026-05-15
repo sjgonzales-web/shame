@@ -1,679 +1,552 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>DHT11 Dashboard</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shame John Gonzales </title>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+:root {
+  --paper:   #f8f4ec;
+  --paper2:  #f0ead8;
+  --paper3:  #e8e0cc;
+  --white:   #fdfaf4;
+  --moss:    #4a6741;
+  --moss-l:  #6a8a5e;
+  --moss-xl: #d0dfc8;
+  --moss-xxl:#edf3e8;
+  --clay:    #a85c3a;
+  --clay-l:  #c27a58;
+  --clay-xl: #f0ddd4;
+  --clay-xxl:#faf3ef;
+  --fern:    #3a5c48;
+  --fern-xl: #cce0d4;
+  --fern-xxl:#edf5f0;
+  --wheat:   #c8a045;
+  --wheat-xl:#f5e8c0;
+  --ink:     #1e1a12;
+  --ink-soft:#3d3424;
+  --ink-mute:#8c8070;
+  --ink-pale:#ccc4b0;
+  --border:  #ddd5c0;
+  --sh: 0 2px 16px rgba(30,26,18,0.08);
+  --sh-md: 0 6px 30px rgba(30,26,18,0.13);
+  --r: 4px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Jost', sans-serif;
+  font-size: 14.5px;
+  min-height: 100vh;
+  /* Subtle paper texture using CSS */
+  background-image:
+    radial-gradient(ellipse at 15% 15%, rgba(74,103,65,0.06) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 85%, rgba(168,92,58,0.06) 0%, transparent 55%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+}
 
-  <style>
-    :root {
-      --bg: #0b1020;
-      --card: rgba(255,255,255,0.07);
-      --border: rgba(255,255,255,0.12);
-      --text: #e8ecf3;
-      --muted: #9aa4bf;
-      --accent: #6cf2c2;
-      --accent-2: #7aa2ff;
-      --success: #2de2a6;
-      --radius: 14px;
-      --blur: blur(10px);
-    }
+/* ── HEADER ── */
+header {
+  background: var(--moss);
+  position: relative; overflow: hidden;
+}
+header::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(ellipse at 10% 50%, rgba(255,255,255,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 50%, rgba(255,255,255,0.04) 0%, transparent 50%);
+}
+/* Decorative botanical line art */
+header::after {
+  content: '❧';
+  position: absolute; right: 32px; top: 50%; transform: translateY(-50%);
+  font-size: 120px; color: rgba(255,255,255,0.04); line-height: 1;
+  pointer-events: none;
+}
+.hdr-inner {
+  max-width: 1160px; margin: 0 auto;
+  padding: 20px 32px;
+  display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+  position: relative; z-index: 1;
+}
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand-leaf {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+  display: flex; align-items: center; justify-content: center; font-size: 22px;
+}
+.brand-name {
+  font-family: 'Spectral', serif; font-size: 1.4rem; font-style: italic; font-weight: 400;
+  color: #fff; letter-spacing: 0.01em;
+}
+.brand-sub { font-size: 0.66rem; color: rgba(255,255,255,0.5); font-weight: 400; margin-top: 2px; letter-spacing: 0.08em; text-transform: uppercase; }
+.hdr-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.hdr-reading {
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px; padding: 10px 18px; text-align: center;
+}
+.hr-val { font-family: 'Spectral', serif; font-size: 1.5rem; font-style: italic; color: #fff; line-height: 1; }
+.hr-lbl { font-size: 0.6rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.12em; margin-top: 2px; }
+.conn-sprig {
+  display: flex; align-items: center; gap: 7px;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px; padding: 7px 14px;
+  font-size: 0.68rem; font-weight: 500; color: rgba(255,255,255,0.7); letter-spacing: 0.05em;
+}
+.cs-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.25); flex-shrink: 0; animation: pulse 2.5s ease-in-out infinite; }
+.cs-dot.live { background: #a8d898; box-shadow: 0 0 0 3px rgba(168,216,152,0.2); }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.5} }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── NAV ── */
+nav { background: var(--white); border-bottom: 1px solid var(--border); }
+.nav-inner { max-width: 1160px; margin: 0 auto; padding: 0 32px; display: flex; }
+.tab {
+  padding: 13px 20px; font-size: 0.76rem; font-weight: 600; letter-spacing: 0.04em;
+  color: var(--ink-mute); cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all 0.2s; text-transform: uppercase; display: flex; align-items: center; gap: 7px;
+  user-select: none;
+}
+.tab:hover { color: var(--ink-soft); }
+.tab.active { color: var(--moss); border-bottom-color: var(--moss); }
 
-    body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: linear-gradient(180deg, #0b1020 0%, #070b17 100%);
-      color: var(--text);
-      min-height: 100vh;
-    }
+/* ── MAIN ── */
+main { max-width: 1160px; margin: 0 auto; padding: 30px 32px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+.pg-title {
+  font-family: 'Spectral', serif; font-size: 2.1rem; font-weight: 300; font-style: italic;
+  color: var(--ink); letter-spacing: 0.01em; margin-bottom: 4px;
+}
+.pg-title strong { font-weight: 600; font-style: normal; color: var(--moss); }
+.pg-sub { font-size: 0.72rem; color: var(--ink-mute); font-weight: 400; margin-bottom: 28px; letter-spacing: 0.04em; }
+.divider {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+}
+.div-ornament { color: var(--moss-l); font-size: 14px; }
+.div-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.18em; color: var(--ink-pale); }
+.div-line { flex: 1; height: 1px; background: var(--border); }
 
-    /* ── Top Bar ── */
-    .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: rgba(11,16,32,0.92);
-      backdrop-filter: var(--blur);
-      border-bottom: 1px solid var(--border);
-      padding: 10px 20px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
+/* ── CARD ── */
+.card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--r); box-shadow: var(--sh);
+  margin-bottom: 20px; overflow: hidden; transition: box-shadow 0.2s;
+}
+.card:hover { box-shadow: var(--sh-md); }
+.card-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 22px; border-bottom: 1px solid var(--border); background: var(--paper);
+}
+.ch-title { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-mute); }
+.ch-tag { font-size: 0.6rem; font-weight: 600; padding: 3px 10px; border-radius: 2px; background: var(--moss-xl); color: var(--moss); letter-spacing: 0.06em; }
 
-    .topbar-brand {
-      font-weight: 700;
-      font-size: 1rem;
-      white-space: nowrap;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+/* ── FIELD NOTES (Live Reading) ── */
+.field-notes { display: grid; grid-template-columns: 1fr 1fr 1fr; margin-bottom: 20px; }
+@media(max-width:720px) { .field-notes { grid-template-columns: 1fr; } }
+.fn-entry {
+  background: var(--white); border: 1px solid var(--border);
+  padding: 26px 24px; position: relative; transition: box-shadow 0.2s;
+}
+.fn-entry:not(:last-child) { border-right: none; }
+.fn-entry:hover { box-shadow: var(--sh); z-index: 1; }
+.fn-entry::before {
+  content: attr(data-num);
+  position: absolute; top: 18px; right: 20px;
+  font-family: 'Spectral', serif; font-size: 0.75rem; font-style: italic;
+  color: var(--ink-pale);
+}
+.fn-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em;
+  padding: 3px 10px; margin-bottom: 14px; border-radius: 2px;
+}
+.fnt-clay  { background: var(--clay-xl);   color: var(--clay); }
+.fnt-moss  { background: var(--moss-xl);   color: var(--moss); }
+.fnt-fern  { background: var(--fern-xl);   color: var(--fern); }
+.fn-reading {
+  font-family: 'Spectral', serif; font-size: 4rem; font-weight: 300; font-style: italic;
+  line-height: 1; letter-spacing: -0.02em; color: var(--ink);
+}
+.fn-reading.t { color: var(--clay); }
+.fn-reading.h { color: var(--moss); }
+.fn-unit { font-size: 1.2rem; font-weight: 300; opacity: 0.45; }
+.fn-bar-wrap { margin-top: 14px; }
+.fn-track { height: 3px; background: var(--paper2); border-radius: 2px; overflow: hidden; }
+.fn-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+.fn-fill.t { background: linear-gradient(90deg, var(--clay-l), var(--clay)); }
+.fn-fill.h { background: linear-gradient(90deg, var(--moss-l), var(--moss)); }
+.fn-range { font-size: 0.63rem; color: var(--ink-mute); margin-top: 5px; font-weight: 400; font-style: italic; }
+.fn-alert {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 13px; border-radius: 2px;
+  font-size: 0.75rem; font-weight: 600; margin-bottom: 12px;
+  letter-spacing: 0.04em;
+}
+.fa-ok   { background: var(--moss-xxl); color: var(--moss); }
+.fa-warn { background: var(--clay-xxl); color: var(--clay); animation: rustle 2s ease-in-out infinite; }
+@keyframes rustle { 0%,100%{transform:rotate(0deg)} 30%{transform:rotate(-1.5deg)} 70%{transform:rotate(1.5deg)} }
+.fa-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.fn-meta { font-size: 0.68rem; color: var(--ink-mute); line-height: 1.9; }
 
-    .topbar-divider { width: 1px; height: 32px; background: var(--border); }
+/* ── SPECIMEN CARDS (Stats) ── */
+.specimens { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 20px; }
+@media(max-width:700px) { .specimens { grid-template-columns: 1fr 1fr; } }
+.specimen {
+  background: var(--white); border: 1px solid var(--border);
+  padding: 18px 16px; border-radius: var(--r); box-shadow: var(--sh);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.specimen:hover { transform: translateY(-2px); box-shadow: var(--sh-md); }
+.sp-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.sp-icon { font-size: 18px; }
+.sp-label-tag { font-size: 0.56rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; padding: 2px 7px; border-radius: 2px; }
+.slt-clay  { background: var(--clay-xl);  color: var(--clay); }
+.slt-moss  { background: var(--moss-xl);  color: var(--moss); }
+.slt-wheat { background: var(--wheat-xl); color: var(--wheat); }
+.slt-fern  { background: var(--fern-xl);  color: var(--fern); }
+.sp-val {
+  font-family: 'Spectral', serif; font-size: 2rem; font-weight: 400; font-style: italic;
+  letter-spacing: -0.01em; line-height: 1;
+}
+.sv-clay  { color: var(--clay); }
+.sv-moss  { color: var(--moss); }
+.sv-wheat { color: var(--wheat); }
+.sv-fern  { color: var(--fern); }
+.sp-unit { font-size: 0.8rem; opacity: 0.45; }
+.sp-desc { font-size: 0.62rem; color: var(--ink-mute); margin-top: 4px; }
 
-    .led-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* ── LED (Greenhouse Controls) ── */
+.gc-body { padding: 20px 22px; }
+.gc-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+.gc-hd-txt { font-size: 0.72rem; font-weight: 500; color: var(--ink-soft); font-style: italic; }
+.bulk-g { display: flex; gap: 8px; }
+.bk {
+  font-size: 0.68rem; font-weight: 600; padding: 6px 16px;
+  border-radius: 2px; border: 1px solid; cursor: pointer;
+  font-family: 'Jost', sans-serif; transition: all 0.18s; background: transparent;
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.bk-on  { color: var(--moss); border-color: var(--moss); }
+.bk-on:hover  { background: var(--moss); color: #fff; }
+.bk-off { color: var(--ink-mute); border-color: var(--border); }
+.bk-off:hover { background: var(--paper2); }
+.gc-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.gc-chip {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--paper); border: 1px solid var(--border);
+  padding: 8px 13px; border-radius: 2px; transition: all 0.2s;
+}
+.gc-chip.on { background: var(--moss-xxl); border-color: var(--moss-xl); }
+.gc-orb { width: 9px; height: 9px; border-radius: 50%; background: var(--ink-pale); transition: all 0.3s; flex-shrink: 0; }
+.gc-orb.on { background: var(--moss); box-shadow: 0 0 0 3px var(--moss-xl); }
+.gc-name { font-size: 0.74rem; font-weight: 600; color: var(--ink-soft); }
+.gc-pin  { font-size: 0.62rem; color: var(--ink-mute); }
+.gc-btns { display: flex; gap: 4px; margin-left: 2px; }
+.gcb {
+  font-size: 0.6rem; font-weight: 600; padding: 3px 9px;
+  border-radius: 2px; cursor: pointer; border: 1px solid;
+  font-family: 'Jost', sans-serif; background: transparent; transition: all 0.15s;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.gcb-on  { color: var(--moss);  border-color: var(--moss-xl); }
+.gcb-on:hover  { background: var(--moss);  color: #fff; }
+.gcb-off { color: var(--clay);  border-color: var(--clay-xl); }
+.gcb-off:hover { background: var(--clay);  color: #fff; }
 
-    .led-btn {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.06);
-      color: var(--text);
-      font-size: .8rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all .2s;
-      white-space: nowrap;
-    }
+/* ── CHART ── */
+.chart-body { padding: 20px 22px; }
+.chart-leg { display: flex; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+.cl { display: flex; align-items: center; gap: 7px; font-size: 0.7rem; font-weight: 500; color: var(--ink-soft); }
+.cl-line { width: 20px; height: 2px; border-radius: 2px; }
 
-    .led-btn:hover { background: rgba(255,255,255,0.12); }
+/* ── TABLE ── */
+.tbl-filter {
+  display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap;
+  padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--paper);
+}
+.tfl { display: flex; flex-direction: column; gap: 4px; }
+.tfl-lbl { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-mute); }
+.tfi {
+  background: var(--white); border: 1px solid var(--border); border-radius: 2px;
+  color: var(--ink); padding: 7px 12px; font-family: 'Jost',sans-serif;
+  font-size: 0.78rem; outline: none; transition: all 0.2s; appearance: none;
+}
+.tfi:focus { border-color: var(--moss); box-shadow: 0 0 0 3px var(--moss-xxl); }
+.tfb {
+  font-size: 0.68rem; font-weight: 600; padding: 7px 16px; border-radius: 2px;
+  cursor: pointer; border: 1px solid; font-family: 'Jost',sans-serif;
+  transition: all 0.18s; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.tfb-a { background: var(--moss); color: #fff; border-color: var(--moss); }
+.tfb-a:hover { background: var(--moss-l); }
+.tfb-c { background: transparent; color: var(--ink-mute); border-color: var(--border); }
+.tfb-c:hover { background: var(--paper2); }
+.rpp {
+  background: var(--white); border: 1px solid var(--border); border-radius: 2px;
+  color: var(--ink); padding: 7px 12px; font-family: 'Jost',sans-serif;
+  font-size: 0.78rem; outline: none; cursor: pointer; appearance: none;
+}
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: var(--paper); border-bottom: 1px solid var(--border); }
+th { padding: 10px 16px; text-align: left; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-mute); }
+th.r { text-align: right; }
+tbody tr { border-bottom: 1px solid var(--paper2); transition: background 0.12s; }
+tbody tr:hover { background: var(--paper); }
+td { padding: 10px 16px; font-size: 0.78rem; color: var(--ink-soft); }
+td.r { text-align: right; }
+td.dc { color: var(--ink-mute); font-size: 0.7rem; }
+td.tc { font-weight: 600; color: var(--ink); }
+.vth { color: var(--clay); font-weight: 700; }
+.vtm { color: var(--wheat); font-weight: 700; }
+.vtl { color: var(--moss); font-weight: 700; }
+.vhh { color: var(--moss); font-weight: 600; }
+.vhm { color: var(--fern); font-weight: 600; }
+.vhl { color: var(--ink-mute); }
+.sch { display: inline-flex; align-items: center; gap: 4px; font-size: 0.62rem; font-weight: 600; padding: 2px 8px; border-radius: 2px; }
+.sch.ok   { background: var(--moss-xxl); color: var(--moss); }
+.sch.warn { background: var(--clay-xxl); color: var(--clay); }
+.tbl-foot {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  gap: 10px; padding: 12px 20px; border-top: 1px solid var(--border); background: var(--paper);
+  font-size: 0.66rem; color: var(--ink-mute); font-weight: 500;
+}
+.pgr { display: flex; gap: 4px; }
+.pgb {
+  background: var(--white); border: 1px solid var(--border); border-radius: 2px;
+  color: var(--ink-mute); padding: 4px 11px; cursor: pointer;
+  font-family: 'Jost',sans-serif; font-size: 0.66rem; font-weight: 600; transition: all 0.14s;
+}
+.pgb:hover:not(:disabled) { border-color: var(--moss); color: var(--moss); }
+.pgb.active { background: var(--moss); color: #fff; border-color: var(--moss); }
+.pgb:disabled { opacity: 0.3; cursor: not-allowed; }
+@keyframes leafIn { from{opacity:0;transform:translateX(-4px)} to{opacity:1;transform:translateX(0)} }
+.lf { animation: leafIn 0.2s ease forwards; }
 
-    .led-btn.active {
-      border-color: rgba(108,242,194,.5);
-      background: rgba(108,242,194,.12);
-      color: var(--accent);
-      box-shadow: 0 0 12px rgba(108,242,194,.2);
-    }
+/* ── THRESHOLD ── */
+.tw { max-width: 600px; }
+.tb { background: var(--white); border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--sh); margin-bottom: 14px; overflow: hidden; }
+.tb-h { padding: 12px 20px; font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; display: flex; align-items: center; gap: 8px; }
+.tb-h.clay { background: var(--clay-xxl); color: var(--clay); border-bottom: 1px solid var(--clay-xl); }
+.tb-h.moss { background: var(--moss-xxl); color: var(--moss); border-bottom: 1px solid var(--moss-xl); }
+.tb-h.fern { background: var(--fern-xxl); color: var(--fern); border-bottom: 1px solid var(--fern-xl); }
+.tb-b { padding: 18px 20px; }
+.fg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media(max-width:500px) { .fg2 { grid-template-columns: 1fr; } }
+.fg { display: flex; flex-direction: column; gap: 5px; }
+.fg label { font-size: 0.68rem; font-weight: 600; color: var(--ink-soft); }
+.fg input {
+  background: var(--paper); border: 1px solid var(--border); border-radius: 2px;
+  color: var(--ink); padding: 9px 12px; font-family: 'Jost',sans-serif;
+  font-size: 0.85rem; outline: none; transition: all 0.2s; width: 100%;
+}
+.fg input:focus { border-color: var(--moss); background: var(--white); box-shadow: 0 0 0 3px var(--moss-xxl); }
+.fg input.err { border-color: var(--clay); background: var(--clay-xxl); }
+.ferr { font-size: 0.62rem; color: var(--clay); display: none; font-weight: 600; }
+.ferr.show { display: block; }
+.save-btn {
+  width: 100%; padding: 12px; background: var(--moss);
+  border: none; border-radius: var(--r); color: #fff;
+  font-family: 'Jost',sans-serif; font-size: 0.85rem; font-weight: 700;
+  cursor: pointer; transition: all 0.2s; letter-spacing: 0.06em; text-transform: uppercase;
+  box-shadow: 0 4px 14px rgba(74,103,65,0.3); margin-top: 4px;
+}
+.save-btn:hover { background: var(--moss-l); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(74,103,65,0.35); }
+.save-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.path-note {
+  margin-top: 14px; padding: 14px 18px; border-radius: var(--r);
+  background: var(--moss-xxl); border: 1px solid var(--moss-xl);
+  font-size: 0.67rem; color: var(--ink-mute); line-height: 1.9;
+}
+code { background: var(--white); border: 1px solid var(--border); border-radius: 2px; padding: 1px 5px; font-size: 0.65rem; color: var(--clay); font-family: 'Courier New', monospace; }
 
-    .led-dot {
-      width: 9px; height: 9px;
-      border-radius: 50%;
-      opacity: .4;
-      transition: opacity .2s, box-shadow .2s;
-    }
-
-    .led-btn.active .led-dot { opacity: 1; box-shadow: 0 0 8px currentColor; }
-
-    .led-btn.red   .led-dot { background: #ff6b6b; }
-    .led-btn.green .led-dot { background: #2de2a6; }
-    .led-btn.blue  .led-dot { background: #7aa2ff; }
-    .led-btn.yellow .led-dot{ background: #ffd166; }
-    .led-btn.white .led-dot { background: #e8ecf3; }
-
-    .quick-btns { display: flex; gap: 6px; }
-
-    .btn-all-off {
-      padding: 5px 12px; border-radius: 999px;
-      border: 1px solid rgba(255,107,107,.4);
-      background: rgba(255,107,107,.1);
-      color: #ff6b6b; font-size: .8rem; font-weight: 700; cursor: pointer; transition: all .2s;
-    }
-    .btn-all-on {
-      padding: 5px 12px; border-radius: 999px;
-      border: 1px solid rgba(45,226,166,.4);
-      background: rgba(45,226,166,.1);
-      color: var(--success); font-size: .8rem; font-weight: 700; cursor: pointer; transition: all .2s;
-    }
-    .btn-all-off:hover { background: rgba(255,107,107,.2); }
-    .btn-all-on:hover  { background: rgba(45,226,166,.2); }
-
-    .live-dot {
-      width: 9px; height: 9px; border-radius: 50%;
-      background: var(--success); animation: pulse 1.8s infinite; display: inline-block;
-    }
-
-    @keyframes pulse {
-      0%  { box-shadow: 0 0 0 0 rgba(45,226,166,.55); }
-      70% { box-shadow: 0 0 0 8px rgba(45,226,166,0); }
-      100%{ box-shadow: 0 0 0 0 rgba(45,226,166,0); }
-    }
-
-    .main { padding: 24px 20px 48px; max-width: 1100px; margin: 0 auto; }
-
-    /* ── Filter bar ── */
-    .filter-bar {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 16px 18px;
-      margin-bottom: 20px;
-      backdrop-filter: var(--blur);
-    }
-
-    .filter-bar label { font-size: .8rem; color: var(--muted); font-weight: 600; margin-bottom: 4px; display: block; }
-
-    .filter-bar input,
-    .filter-bar select {
-      background: rgba(255,255,255,.06);
-      border: 1px solid var(--border);
-      color: var(--text);
-      border-radius: 8px;
-      font-size: .85rem;
-      padding: 6px 10px;
-      width: 100%;
-    }
-
-    .filter-bar input:focus,
-    .filter-bar select:focus {
-      outline: none;
-      border-color: var(--accent-2);
-      box-shadow: 0 0 0 2px rgba(122,162,255,.2);
-    }
-
-    .quick-range { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
-
-    .quick-range button {
-      padding: 4px 12px; border-radius: 999px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,.05);
-      color: var(--muted); font-size: .78rem; cursor: pointer; transition: all .2s;
-    }
-
-    .quick-range button:hover {
-      background: rgba(122,162,255,.15);
-      border-color: var(--accent-2);
-      color: var(--text);
-    }
-
-    .realtime-toggle {
-      display: flex; align-items: center; gap: 8px;
-      font-size: .82rem; color: var(--muted); cursor: pointer; user-select: none;
-    }
-    .realtime-toggle input { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
-
-    /* ── Stat Cards ── */
-    .stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
-    @media (max-width: 700px) { .stats-row { grid-template-columns: repeat(2,1fr); } }
-
-    .stat-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 16px 12px;
-      text-align: center;
-      backdrop-filter: var(--blur);
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* Current reading cards get a live indicator */
-    .stat-card.live {
-      border-color: rgba(255,255,255,.2);
-      background: linear-gradient(135deg, rgba(255,255,255,.1), rgba(255,255,255,.04));
-    }
-
-    .stat-card.live::after {
-      content: 'LIVE';
-      position: absolute;
-      top: 8px; right: 10px;
-      font-size: .6rem;
-      font-weight: 800;
-      letter-spacing: .1em;
-      color: var(--success);
-      opacity: .85;
-    }
-
-    .stat-val { font-size: 1.7rem; font-weight: 800; }
-    .stat-val.t { color: #ff7b7b; }
-    .stat-val.h { color: var(--accent-2); }
-    .stat-label { font-size: .75rem; color: var(--muted); margin-top: 2px; }
-
-    /* ── Chart card ── */
-    .chart-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px;
-      margin-bottom: 20px;
-      backdrop-filter: var(--blur);
-    }
-    .chart-card h5 { font-size: .95rem; font-weight: 700; margin-bottom: 6px; }
-    .chart-meta { font-size: .78rem; color: var(--muted); margin-bottom: 14px; }
-
-    /* ── Table card ── */
-    .table-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px;
-      backdrop-filter: var(--blur);
-    }
-    .table-card h5 { font-size: .95rem; font-weight: 700; }
-
-    .table-controls {
-      display: flex; align-items: center;
-      justify-content: space-between;
-      gap: 10px; flex-wrap: wrap; margin-bottom: 14px;
-    }
-
-    .table-controls input,
-    .table-controls select {
-      background: rgba(255,255,255,.06);
-      border: 1px solid var(--border);
-      color: var(--text);
-      border-radius: 8px;
-      padding: 5px 10px;
-      font-size: .82rem;
-    }
-
-    .table-controls input:focus,
-    .table-controls select:focus { outline: none; border-color: var(--accent-2); }
-
-    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
-    thead th {
-      padding: 8px 12px;
-      border-bottom: 1px solid var(--border);
-      color: var(--muted); font-weight: 600; font-size: .78rem;
-      text-transform: uppercase; letter-spacing: .08em; text-align: left;
-    }
-
-    tbody tr { border-bottom: 1px solid rgba(255,255,255,.04); transition: background .15s; }
-    tbody tr:hover { background: rgba(122,162,255,.07); }
-    tbody td { padding: 9px 12px; }
-
-    tbody tr.latest-row { background: rgba(45,226,166,.05); border-left: 2px solid var(--success); }
-
-    .badge-time {
-      font-family: 'Courier New', monospace; font-size: .78rem;
-      padding: 3px 8px; border-radius: 6px;
-      background: rgba(122,162,255,.12);
-      border: 1px solid rgba(122,162,255,.25); color: #c8d5ff;
-    }
-    .badge-temp {
-      padding: 3px 10px; border-radius: 999px;
-      background: rgba(255,107,107,.12);
-      border: 1px solid rgba(255,107,107,.3); color: #ffb1b1; font-weight: 700;
-    }
-    .badge-hum {
-      padding: 3px 10px; border-radius: 999px;
-      background: rgba(122,162,255,.12);
-      border: 1px solid rgba(122,162,255,.3); color: #c8d5ff; font-weight: 700;
-    }
-
-    .pagination-row {
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 10px; margin-top: 14px;
-    }
-    .pagination-row small { color: var(--muted); font-size: .78rem; }
-    .page-btns { display: flex; align-items: center; gap: 8px; }
-    .page-btns button {
-      background: rgba(255,255,255,.06); border: 1px solid var(--border);
-      color: var(--text); border-radius: 8px; padding: 4px 12px;
-      font-size: .8rem; cursor: pointer; transition: all .2s;
-    }
-    .page-btns button:disabled { opacity: .35; cursor: not-allowed; }
-    .page-btns button:not(:disabled):hover { background: rgba(122,162,255,.15); border-color: var(--accent-2); }
-    .page-info { font-size: .82rem; color: var(--muted); }
-    .empty-state { text-align: center; padding: 32px; color: var(--muted); font-size: .9rem; }
-  </style>
+#toast { position: fixed; bottom: 22px; right: 22px; z-index: 9999; padding: 12px 20px; border-radius: var(--r); font-size: 0.78rem; font-weight: 600; opacity: 0; transform: translateY(10px); transition: all 0.3s; pointer-events: none; box-shadow: var(--sh-md); }
+#toast.show { opacity: 1; transform: translateY(0); }
+#toast.ok   { background: var(--moss); color: #fff; }
+#toast.fail { background: var(--clay); color: #fff; }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--paper); }
+::-webkit-scrollbar-thumb { background: var(--ink-pale); border-radius: 2px; }
+</style>
 </head>
 <body>
 
-<!-- ── TOP BAR ── -->
-<div class="topbar">
-  <div class="topbar-brand">
-    🌡️ DHT11 Dashboard
-    <span class="live-dot"></span>
-  </div>
-  <div class="topbar-divider"></div>
-  <div class="led-group">
-    <span style="font-size:.78rem;color:var(--muted);font-weight:600;white-space:nowrap;">LEDs:</span>
-    <button class="led-btn red"    id="LED1-btn" onclick="toggleDevice('LED1')"><span class="led-dot"></span> 1</button>
-    <button class="led-btn green"  id="LED2-btn" onclick="toggleDevice('LED2')"><span class="led-dot"></span> 2</button>
-    <button class="led-btn blue"   id="LED3-btn" onclick="toggleDevice('LED3')"><span class="led-dot"></span> 3</button>
-    <button class="led-btn yellow" id="LED4-btn" onclick="toggleDevice('LED4')"><span class="led-dot"></span> 4</button>
-    <button class="led-btn white"  id="LED5-btn" onclick="toggleDevice('LED5')"><span class="led-dot"></span> 5</button>
-  </div>
-  <div class="topbar-divider"></div>
-  <div class="quick-btns">
-    <button class="btn-all-off" onclick="allOff()">All OFF</button>
-    <button class="btn-all-on"  onclick="allOn()">All ON</button>
-  </div>
-</div>
-
-<!-- ── MAIN ── -->
-<div class="main">
-
-  <!-- Filter -->
-  <div class="filter-bar">
-    <div class="row g-2 align-items-end">
-      <div class="col-12 col-sm-auto">
-        <label>📅 Date</label>
-        <input type="date" id="dateInput" />
-      </div>
-      <div class="col-6 col-sm-auto">
-        <label>⏰ From</label>
-        <select id="startHour"><option value="">All</option></select>
-      </div>
-      <div class="col-6 col-sm-auto">
-        <label>⏰ To</label>
-        <select id="endHour"><option value="">All</option></select>
-      </div>
-      <div class="col-auto ms-auto">
-        <label class="realtime-toggle">
-          <input type="checkbox" id="realtimeToggle" checked>
-          Live updates
-        </label>
+<header>
+  <div class="hdr-inner">
+    <div class="brand">
+      <div class="brand-leaf">🌿</div>
+      <div>
+        <div class="brand-name">Shame John Gonzales </div>
+        <div class="brand-sub">ESP32 · DHT11 ·3-B</div>
       </div>
     </div>
-    <div class="quick-range">
-      <span style="font-size:.78rem;color:var(--muted);">Quick:</span>
-      <button onclick="setRange(0,5)">Night</button>
-      <button onclick="setRange(6,11)">Morning</button>
-      <button onclick="setRange(12,17)">Afternoon</button>
-      <button onclick="setRange(18,23)">Evening</button>
-      <button onclick="setRange('','')">Full Day</button>
+    <div class="hdr-right">
+      <div class="hdr-reading"><div class="hr-val" id="hdrT">--°</div><div class="hr-lbl">Celsius</div></div>
+      <div class="hdr-reading"><div class="hr-val" id="hdrH">--%</div><div class="hr-lbl">Humidity</div></div>
+      <div class="conn-sprig"><span id="cdot" class="cs-dot"></span><span id="ctxt">Connecting…</span></div>
     </div>
   </div>
+</header>
 
-  <!-- Stats — Current + Max -->
-  <div class="stats-row">
-    <div class="stat-card live">
-      <div class="stat-val t" id="curTemp">--</div>
-      <div class="stat-label">Current Temp (°C)</div>
-    </div>
-    <div class="stat-card live">
-      <div class="stat-val h" id="curHum">--</div>
-      <div class="stat-label">Current Humidity (%)</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val t" id="maxTemp">--</div>
-      <div class="stat-label">Max Temp (°C)</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val h" id="maxHum">--</div>
-      <div class="stat-label">Max Humidity (%)</div>
-    </div>
+<nav>
+  <div class="nav-inner">
+    <div class="tab active" onclick="switchTab('dash')">🌱 Field Notes</div>
+    <div class="tab" onclick="switchTab('thresh')">⚙ Thresholds</div>
   </div>
+</nav>
 
-  <!-- Chart -->
-  <div class="chart-card">
-    <h5>📈 Sensor Graph <span style="font-weight:400;color:var(--muted);">(1-min averages)</span></h5>
-    <div class="chart-meta" id="dataCount">Waiting for data…</div>
-    <canvas id="dhtChart" height="75"></canvas>
-  </div>
+<main>
+<!-- DASHBOARD -->
+<div id="tab-dash" class="tab-panel active">
+  <div class="pg-title">Today's <strong>Observations</strong></div>
+  <div class="pg-sub">Live readings · Firebase ·  · 10-second intervals</div>
 
-  <!-- Table -->
-  <div class="table-card">
-    <div class="table-controls">
-      <h5>📋 History</h5>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <input type="text" id="searchBox" placeholder="🔍 Search time…" style="width:160px;">
-        <select id="rowsPerPage">
-          <option value="10">10 rows</option>
-          <option value="25" selected>25 rows</option>
-          <option value="50">50 rows</option>
-          <option value="100">100 rows</option>
-          <option value="all">All</option>
-        </select>
+  <div class="divider"><span class="div-ornament">✦</span><span class="div-label">Live Reading</span><div class="div-line"></div></div>
+  <div class="field-notes">
+    <div class="fn-entry" data-num="No. 1">
+      <div class="fn-tag fnt-clay">🌡 Temperature</div>
+      <div class="fn-reading t" id="liveT">--<span class="fn-unit"> °C</span></div>
+      <div class="fn-bar-wrap"><div class="fn-track"><div id="tBar" class="fn-fill t" style="width:0%;"></div></div></div>
+      <div class="fn-range" id="tRange">Range: -- – --</div>
+    </div>
+    <div class="fn-entry" data-num="No. 2">
+      <div class="fn-tag fnt-moss">💧 Humidity</div>
+      <div class="fn-reading h" id="liveH">--<span class="fn-unit"> %</span></div>
+      <div class="fn-bar-wrap"><div class="fn-track"><div id="hBar" class="fn-fill h" style="width:0%;"></div></div></div>
+      <div class="fn-range" id="hRange">Range: -- – --</div>
+    </div>
+    <div class="fn-entry" data-num="No. 3">
+      <div class="fn-tag fnt-fern">🔔 Alert Status</div>
+      <div id="falert" class="fn-alert fa-ok"><span class="fa-dot"></span><span id="fatxt">Conditions normal</span></div>
+      <div class="fn-meta">
+        <div id="fEmail">📧 Not configured</div>
+        <div id="fTime" style="margin-top:3px;">🕐 --</div>
+        <div id="fCnt"  style="margin-top:3px;">📦 0 entries</div>
       </div>
     </div>
+  </div>
 
+  <div class="divider"><span class="div-ornament">✦</span><span class="div-label">Statistics</span><div class="div-line"></div></div>
+  <div class="specimens">
+    <div class="specimen"><div class="sp-top"><span class="sp-icon">🌡</span><span class="sp-label-tag slt-clay">Temp</span></div><div class="sp-val sv-clay" id="stT">--<span class="sp-unit"> °C</span></div><div class="sp-desc">Current temperature</div></div>
+    <div class="specimen"><div class="sp-top"><span class="sp-icon">💧</span><span class="sp-label-tag slt-moss">Hum</span></div><div class="sp-val sv-moss" id="stH">--<span class="sp-unit"> %</span></div><div class="sp-desc">Current humidity</div></div>
+    <div class="specimen"><div class="sp-top"><span class="sp-icon">📊</span><span class="sp-label-tag slt-wheat">Avg</span></div><div class="sp-val sv-wheat" id="stA">--<span class="sp-unit"> °C</span></div><div class="sp-desc">Session average</div></div>
+    <div class="specimen"><div class="sp-top"><span class="sp-icon">📋</span><span class="sp-label-tag slt-fern">Log</span></div><div class="sp-val sv-fern" id="stR">0</div><div class="sp-desc">Total entries</div></div>
+  </div>
+
+  <div class="divider"><span class="div-ornament">✦</span><span class="div-label">Greenhouse Controls</span><div class="div-line"></div></div>
+  <div class="card">
+    <div class="card-hd"><span class="ch-title">💡 Light Channels</span><span class="ch-tag">5 channels</span></div>
+    <div class="gc-body">
+      <div class="gc-hd"><span class="gc-hd-txt">Pins 17, 18, 19, 21, 22</span>
+        <div class="bulk-g"><button class="bk bk-on" onclick="allLEDs(1)">All On</button><button class="bk bk-off" onclick="allLEDs(0)">All Off</button></div>
+      </div>
+      <div class="gc-row" id="gcRow"></div>
+    </div>
+  </div>
+
+  <div class="divider"><span class="div-ornament">✦</span><span class="div-label">Trend</span><div class="div-line"></div></div>
+  <div class="card">
+    <div class="card-hd"><span class="ch-title">📈 Reading History</span><span class="ch-tag">Last 50</span></div>
+    <div class="chart-body">
+      <div class="chart-leg">
+        <div class="cl"><div class="cl-line" style="background:var(--clay);"></div>Temperature °C</div>
+        <div class="cl"><div class="cl-line" style="background:var(--moss);"></div>Humidity %</div>
+      </div>
+      <canvas id="dhtChart" style="max-height:260px;width:100%;"></canvas>
+    </div>
+  </div>
+
+  <div class="divider"><span class="div-ornament">✦</span><span class="div-label">Log</span><div class="div-line"></div></div>
+  <div class="card">
+    <div class="card-hd"><span class="ch-title">📋 Sensor Entries</span><span id="tbadge" class="ch-tag">0 entries</span></div>
+    <div class="tbl-filter">
+      <div class="tfl"><span class="tfl-lbl">Date</span><input type="date" id="dateFilter" class="tfi"></div>
+      <button id="applyFilter" class="tfb tfb-a">Apply</button>
+      <button id="clearFilter" class="tfb tfb-c">Clear</button>
+      <div class="tfl" style="margin-left:auto;"><span class="tfl-lbl">Rows</span>
+        <select id="rowsPerPage" class="rpp"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option><option value="100">100</option><option value="all">All</option></select>
+      </div>
+    </div>
     <div style="overflow-x:auto;">
-      <table>
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Temperature</th>
-            <th>Humidity</th>
-          </tr>
-        </thead>
-        <tbody id="historyTable">
-          <tr><td colspan="3" class="empty-state">Select a date to view data</td></tr>
-        </tbody>
-      </table>
+      <table><thead><tr><th>#</th><th>Date</th><th>Time</th><th class="r">Temp °C</th><th class="r">Humidity %</th><th class="r">Status</th></tr></thead>
+      <tbody id="dataTable"></tbody></table>
     </div>
-
-    <div id="paginationControls" class="pagination-row" style="display:none;">
-      <small>Showing <span id="showingRange">0</span> of <span id="totalRows">0</span> entries</small>
-      <div class="page-btns">
-        <button id="prevPage" disabled>← Prev</button>
-        <span class="page-info">Page <span id="currentPage">1</span> / <span id="totalPages">1</span></span>
-        <button id="nextPage" disabled>Next →</button>
-      </div>
+    <div class="tbl-foot">
+      <span id="tableInfo">0 entries</span>
+      <div class="pgr"><button id="prevBtn" class="pgb" disabled>← Prev</button><div id="pageNumbers" style="display:flex;gap:4px;"></div><button id="nextBtn" class="pgb" disabled>Next →</button></div>
+      <span id="pageInfo">Page 1 of 1</span>
     </div>
-
-    <div id="noData" class="empty-state" style="display:none;">📭 No data for selected filters.</div>
   </div>
-
 </div>
 
+<!-- THRESHOLDS -->
+<div id="tab-thresh" class="tab-panel">
+  <div class="pg-title">Alert <strong>Thresholds</strong></div>
+  <div class="pg-sub">Configure safe conditions · ESP32 checks every 30 s · SMTP alert on breach</div>
+  <div class="tw">
+    <div class="tb"><div class="tb-h clay">🌡 Temperature limits</div><div class="tb-b"><div class="fg2">
+      <div class="fg"><label>Min (°C)</label><input type="number" id="tTempMin" step="0.5" placeholder="15"><span class="ferr" id="eTempMin">Required</span></div>
+      <div class="fg"><label>Max (°C)</label><input type="number" id="tTempMax" step="0.5" placeholder="40"><span class="ferr" id="eTempMax">Required</span></div>
+    </div><span class="ferr" id="eTempRange" style="margin-top:6px;display:none;">Min must be less than Max</span></div></div>
+    <div class="tb"><div class="tb-h moss">💧 Humidity limits</div><div class="tb-b"><div class="fg2">
+      <div class="fg"><label>Min (%)</label><input type="number" id="tHumMin" step="1" placeholder="20"><span class="ferr" id="eHumMin">Required</span></div>
+      <div class="fg"><label>Max (%)</label><input type="number" id="tHumMax" step="1" placeholder="90"><span class="ferr" id="eHumMax">Required</span></div>
+    </div><span class="ferr" id="eHumRange" style="margin-top:6px;display:none;">Min must be less than Max</span></div></div>
+    <div class="tb"><div class="tb-h fern">📬 Alert settings</div><div class="tb-b" style="display:flex;flex-direction:column;gap:14px;">
+      <div class="fg"><label>Recipient email</label><input type="email" id="tEmail" placeholder="you@example.com"><span class="ferr" id="eEmail">Valid email required</span></div>
+      <div class="fg"><label>Cooldown (minutes)</label><input type="number" id="tCooldown" min="1" placeholder="10"><span class="ferr" id="eCooldown">Must be ≥ 1</span></div>
+    </div></div>
+    <button class="save-btn" id="saveBtn" onclick="saveThresholds()">Save Thresholds</button>
+    <div class="path-note"><strong style="color:var(--moss);">Firebase paths</strong><br>
+      <code>Thresholds/temperature/min|max</code> · <code>Thresholds/humidity/min|max</code> · <code>Thresholds/alertEmail</code> · <code>Thresholds/cooldownMin</code><br>
+      <code>Controls/LED1–5/state</code> · <code>DHT11/YYYY-MM-DD/HH/MM/SS/temperature|humidity</code>
+    </div>
+  </div>
+</div>
+</main>
+
+<div id="toast"></div>
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyByPHN3USjnb8-F8qpkr4x7dsVPwcwlec8",
-    authDomain: "shame-john-gonzales.firebaseapp.com",
-    databaseURL: "https://shame-john-gonzales-default-rtdb.firebaseio.com",
-    projectId: "shame-john-gonzales",
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-
-  // ── LED Controls ──
-  function toggleDevice(device) {
-    const btn = document.getElementById(`${device}-btn`);
-    const isOn = btn.classList.contains('active');
-    db.ref(`Controls/${device}`).set({ state: isOn ? 0 : 1, timestamp: Date.now() });
-  }
-
-  function allOff() {
-    ['LED1','LED2','LED3','LED4','LED5'].forEach(d =>
-      db.ref(`Controls/${d}`).set({ state: 0, timestamp: Date.now() })
-    );
-  }
-
-  function allOn() {
-    ['LED1','LED2','LED3','LED4','LED5'].forEach(d =>
-      db.ref(`Controls/${d}`).set({ state: 1, timestamp: Date.now() })
-    );
-  }
-
-  ['LED1','LED2','LED3','LED4','LED5'].forEach(device => {
-    db.ref(`Controls/${device}`).on('value', snap => {
-      const data = snap.val();
-      const btn = document.getElementById(`${device}-btn`);
-      if (!data || data.state === undefined) {
-        db.ref(`Controls/${device}`).set({ state: 0, timestamp: Date.now() });
-        return;
-      }
-      btn.classList.toggle('active', data.state === 1);
-    });
-  });
-
-  // ── Chart ──
-  const labels = [], tempData = [], humData = [];
-  const dhtChart = new Chart(document.getElementById('dhtChart').getContext('2d'), {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: 'Temperature (°C)', data: tempData, borderColor: '#ff6b6b', backgroundColor: 'rgba(255,107,107,.1)', fill: true, tension: .4, pointRadius: 3, pointHoverRadius: 5 },
-        { label: 'Humidity (%)',      data: humData,  borderColor: '#4dabf7', backgroundColor: 'rgba(77,171,247,.1)',  fill: true, tension: .4, pointRadius: 3, pointHoverRadius: 5 }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: true,
-      plugins: {
-        legend: { position: 'top', labels: { color: '#9aa4bf', font: { size: 12 } } },
-        tooltip: { mode: 'index', intersect: false }
-      },
-      scales: {
-        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#9aa4bf' } },
-        x: { title: { display: true, text: 'Time (HH:MM)', color: '#9aa4bf' }, grid: { display: false }, ticks: { color: '#9aa4bf', maxTicksLimit: 12 } }
-      }
-    }
-  });
-
-  const dateInput      = document.getElementById('dateInput');
-  const startHour      = document.getElementById('startHour');
-  const endHour        = document.getElementById('endHour');
-  const realtimeToggle = document.getElementById('realtimeToggle');
-  const tbody          = document.getElementById('historyTable');
-  const searchBox      = document.getElementById('searchBox');
-  const rowsPerPage    = document.getElementById('rowsPerPage');
-  const prevBtn        = document.getElementById('prevPage');
-  const nextBtn        = document.getElementById('nextPage');
-  const pagControls    = document.getElementById('paginationControls');
-
-  let listener = null, allData = [], filtered = [], page = 1, rpp = 25;
-
-  dateInput.value = new Date().toISOString().split('T')[0];
-
-  for (let i = 0; i < 24; i++) {
-    const h = i.toString().padStart(2,'0');
-    startHour.innerHTML += `<option value="${h}">${h}:00</option>`;
-    endHour.innerHTML   += `<option value="${h}">${h}:59</option>`;
-  }
-
-  function setRange(s, e) {
-    startHour.value = s === '' ? '' : s.toString().padStart(2,'0');
-    endHour.value   = e === '' ? '' : e.toString().padStart(2,'0');
-    startListener();
-  }
-
-  function aggregateByMinute(data) {
-    const map = new Map();
-    [...data].reverse().forEach(p => {
-      const key = p.time.slice(0,5);
-      if (!map.has(key)) map.set(key, { temps:[], hums:[], ts: p.timestamp });
-      map.get(key).temps.push(p.temp);
-      map.get(key).hums.push(p.hum);
-    });
-    return [...map.entries()]
-      .map(([k,v]) => ({
-        time: k,
-        temp: parseFloat((v.temps.reduce((a,b)=>a+b,0)/v.temps.length).toFixed(1)),
-        hum:  parseFloat((v.hums.reduce((a,b)=>a+b,0)/v.hums.length).toFixed(1)),
-        timestamp: v.ts
-      }))
-      .sort((a,b) => a.timestamp - b.timestamp);
-  }
-
-  function startListener() {
-    const date = dateInput.value;
-    if (!date) return;
-    if (listener) listener.off();
-
-    labels.length = tempData.length = humData.length = 0;
-    allData = [];
-
-    listener = db.ref(`DHT11/${date}`);
-    listener.on('value', snap => {
-      if (!snap.exists()) { showEmpty(); return; }
-
-      const sh = startHour.value, eh = endHour.value;
-      const rows = [];
-
-      snap.forEach(hourNode => {
-        const h = parseInt(hourNode.key);
-        if (sh && h < parseInt(sh)) return;
-        if (eh && h > parseInt(eh)) return;
-        const hStr = hourNode.key;
-        hourNode.forEach(minNode => {
-          const m = minNode.key;
-          minNode.forEach(secNode => {
-            const s = secNode.key, d = secNode.val();
-            rows.push({ time:`${hStr}:${m}:${s}`, temp:d.temperature, hum:d.humidity, timestamp:new Date(`${date}T${hStr}:${m}:${s}`) });
-          });
-        });
-      });
-
-      if (!rows.length) { showEmpty(); return; }
-
-      // Sort newest-first — rows[0] is the latest reading
-      rows.sort((a,b) => b.timestamp - a.timestamp);
-      allData = rows; filtered = rows; page = 1;
-
-      const graphData = aggregateByMinute(rows);
-      labels.length = tempData.length = humData.length = 0;
-      graphData.forEach(p => { labels.push(p.time); tempData.push(p.temp); humData.push(p.hum); });
-
-      updateStats(rows);
-      dhtChart.update();
-      renderTable();
-
-      document.getElementById('noData').style.display = 'none';
-      document.getElementById('dataCount').textContent = `${graphData.length} minutes · ${rows.length} readings`;
-    });
-  }
-
-  function updateStats(data) {
-    // data is sorted newest-first, so data[0] is the most recent reading
-    const latest = data[0];
-    const temps = data.map(p => p.temp);
-    const hums  = data.map(p => p.hum);
-
-    document.getElementById('curTemp').textContent = latest.temp;
-    document.getElementById('curHum').textContent  = latest.hum;
-    document.getElementById('maxTemp').textContent = Math.max(...temps).toFixed(1);
-    document.getElementById('maxHum').textContent  = Math.max(...hums).toFixed(1);
-  }
-
-  function renderTable() {
-    if (!filtered.length) {
-      tbody.innerHTML = '<tr><td colspan="3" class="empty-state">No matching data</td></tr>';
-      pagControls.style.display = 'none';
-      return;
-    }
-
-    const total = filtered.length;
-    const perPage = rpp === 'all' ? total : parseInt(rpp);
-    const pages = Math.ceil(total / perPage);
-    if (page > pages) page = pages;
-    if (page < 1) page = 1;
-
-    const start = (page-1)*perPage;
-    const end   = rpp === 'all' ? total : Math.min(start+perPage, total);
-    const slice = filtered.slice(start, end);
-
-    tbody.innerHTML = slice.map((p, i) => {
-      const isLatest = (start + i === 0);
-      return `
-        <tr${isLatest ? ' class="latest-row"' : ''}>
-          <td><span class="badge-time">${p.time}</span></td>
-          <td><span class="badge-temp">${p.temp}°C</span></td>
-          <td><span class="badge-hum">${p.hum}%</span></td>
-        </tr>
-      `;
-    }).join('');
-
-    document.getElementById('currentPage').textContent = page;
-    document.getElementById('totalPages').textContent  = pages;
-    document.getElementById('totalRows').textContent   = total;
-    document.getElementById('showingRange').textContent= `${start+1}–${end}`;
-    prevBtn.disabled = page === 1;
-    nextBtn.disabled = page === pages || rpp === 'all';
-    pagControls.style.display = rpp === 'all' ? 'none' : 'flex';
-  }
-
-  function showEmpty() {
-    document.getElementById('noData').style.display = 'block';
-    document.getElementById('dataCount').textContent = 'No data';
-    tbody.innerHTML = '<tr><td colspan="3" class="empty-state">No data for selected filters</td></tr>';
-    pagControls.style.display = 'none';
-    ['curTemp','curHum','maxTemp','maxHum'].forEach(id => document.getElementById(id).textContent = '--');
-  }
-
-  searchBox.addEventListener('input', () => {
-    const q = searchBox.value.toLowerCase();
-    filtered = q ? allData.filter(p=>p.time.includes(q)) : allData;
-    page = 1; renderTable();
-  });
-
-  rowsPerPage.addEventListener('change', () => { rpp = rowsPerPage.value; page=1; renderTable(); });
-  prevBtn.addEventListener('click', () => { if(page>1){page--;renderTable();} });
-  nextBtn.addEventListener('click', () => { const t=Math.ceil(filtered.length/parseInt(rpp)); if(page<t){page++;renderTable();} });
-
-  realtimeToggle.addEventListener('change', () => {
-    if (realtimeToggle.checked) startListener();
-    else { if(listener){listener.off();listener=null;} document.getElementById('dataCount').textContent += ' (paused)'; }
-  });
-
-  dateInput.addEventListener('change', startListener);
-  startHour.addEventListener('change', startListener);
-  endHour.addEventListener('change', startListener);
-
-  startListener();
+const firebaseConfig={
+     apiKey: "AIzaSyByPHN3USjnb8-F8qpkr4x7dsVPwcwlec8",
+  databaseURL: "https://shame-john-gonzales-default-rtdb.firebaseio.com",
+  projectId: "shame-john-gonzales",
+};
+firebase.initializeApp(firebaseConfig);const db=firebase.database();
+let thresh={tempMin:null,tempMax:null,humMin:null,humMax:null,email:'',cooldown:10};
+db.ref('Thresholds').on('value',snap=>{const d=snap.val();if(!d)return;thresh.tempMin=d.temperature?.min??null;thresh.tempMax=d.temperature?.max??null;thresh.humMin=d.humidity?.min??null;thresh.humMax=d.humidity?.max??null;thresh.email=d.alertEmail??'';thresh.cooldown=d.cooldownMin??10;sv('tTempMin',thresh.tempMin);sv('tTempMax',thresh.tempMax);sv('tHumMin',thresh.humMin);sv('tHumMax',thresh.humMax);sv('tEmail',thresh.email);sv('tCooldown',thresh.cooldown);rR();document.getElementById('fEmail').textContent='📧 '+(thresh.email||'Not configured');});
+function sv(id,v){if(v!==null&&v!==undefined&&v!=='')document.getElementById(id).value=v;}
+function switchTab(n){document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById('tab-'+n).classList.add('active');document.querySelector(`.tab[onclick*="${n}"]`).classList.add('active');}
+const chart=new Chart(document.getElementById('dhtChart').getContext('2d'),{type:'line',data:{labels:[],datasets:[{label:'Temp',data:[],borderColor:'#a85c3a',backgroundColor:'rgba(168,92,58,0.07)',borderWidth:2,pointRadius:3,pointBackgroundColor:'#a85c3a',fill:true,tension:0.4},{label:'Hum',data:[],borderColor:'#4a6741',backgroundColor:'rgba(74,103,65,0.07)',borderWidth:2,pointRadius:3,pointBackgroundColor:'#4a6741',fill:true,tension:0.4}]},options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#fdfaf4',titleColor:'#1e1a12',bodyColor:'#3d3424',borderColor:'#ddd5c0',borderWidth:1,padding:12,cornerRadius:4,titleFont:{family:'Jost',size:11,weight:'700'},bodyFont:{family:'Jost',size:11}}},scales:{x:{ticks:{color:'#8c8070',font:{family:'Jost',size:10},maxTicksLimit:8},grid:{color:'rgba(30,26,18,0.04)'},border:{color:'#ddd5c0'}},y:{beginAtZero:false,ticks:{color:'#8c8070',font:{family:'Jost',size:10}},grid:{color:'rgba(30,26,18,0.04)'},border:{color:'#ddd5c0'}}}}});
+const PINS=[17,18,19,21,22];const gr=document.getElementById('gcRow');
+for(let i=1;i<=5;i++){const d=document.createElement('div');d.className='gc-chip';d.id='gc'+i;d.innerHTML=`<span id="go${i}" class="gc-orb"></span><span class="gc-name">LED ${i}</span><span class="gc-pin">Pin ${PINS[i-1]}</span><div class="gc-btns"><button class="gcb gcb-on" onclick="setLED(${i},1)">On</button><button class="gcb gcb-off" onclick="setLED(${i},0)">Off</button></div>`;gr.appendChild(d);}
+function setLED(n,s){db.ref('Controls/LED'+n+'/state').set(s);}function allLEDs(s){for(let i=1;i<=5;i++)setLED(i,s);}
+for(let i=1;i<=5;i++){db.ref('Controls/LED'+i+'/state').on('value',snap=>{const o=document.getElementById('go'+i);const c=document.getElementById('gc'+i);if(snap.val()===1){o.classList.add('on');c.classList.add('on');}else{o.classList.remove('on');c.classList.remove('on');}});}
+let allRows=[],currentPage=1,selDate=null,rowsPerPage=25;
+function getStatus(t,h){const i=[];if(thresh.tempMin!==null&&t<thresh.tempMin)i.push('Temp low');if(thresh.tempMax!==null&&t>thresh.tempMax)i.push('Temp high');if(thresh.humMin!==null&&h<thresh.humMin)i.push('Hum low');if(thresh.humMax!==null&&h>thresh.humMax)i.push('Hum high');return i.length?i.join(', '):'Normal';}
+function rR(){const tN=thresh.tempMin!==null?thresh.tempMin+'°C':'--';const tX=thresh.tempMax!==null?thresh.tempMax+'°C':'--';const hN=thresh.humMin!==null?thresh.humMin+'%':'--';const hX=thresh.humMax!==null?thresh.humMax+'%':'--';document.getElementById('tRange').textContent=`Range: ${tN} – ${tX}`;document.getElementById('hRange').textContent=`Range: ${hN} – ${hX}`;}
+db.ref('DHT11').on('value',snap=>{const data=snap.val();allRows=[];if(!data){setC('No data');return;}for(const date in data)for(const hh in data[date])for(const mm in data[date][hh])for(const ss in data[date][hh][mm]){const e=data[date][hh][mm][ss];if(e.temperature!==undefined)allRows.push({date,time:`${hh}:${mm}:${ss}`,temp:e.temperature,hum:e.humidity});}allRows.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));setC(allRows.length+' entries logged');renderAll();});
+function setC(m){document.getElementById('cdot').classList.add('live');document.getElementById('ctxt').textContent=m;}
+function fRows(){return selDate?allRows.filter(r=>r.date===selDate):allRows;}
+function tPages(){return rowsPerPage===Infinity?1:Math.max(1,Math.ceil(fRows().length/rowsPerPage));}
+function renderStats(){const rows=fRows();if(!rows.length)return;const last=rows[rows.length-1];const avg=(rows.reduce((a,r)=>a+r.temp,0)/rows.length).toFixed(1);document.getElementById('hdrT').textContent=last.temp.toFixed(1)+'°';document.getElementById('hdrH').textContent=last.hum.toFixed(1)+'%';document.getElementById('liveT').innerHTML=last.temp.toFixed(1)+'<span class="fn-unit"> °C</span>';document.getElementById('liveH').innerHTML=last.hum.toFixed(1)+'<span class="fn-unit"> %</span>';document.getElementById('tBar').style.width=Math.min(100,Math.max(0,(last.temp/60)*100))+'%';document.getElementById('hBar').style.width=Math.min(100,Math.max(0,last.hum))+'%';rR();document.getElementById('fTime').textContent='🕐 '+last.date+' '+last.time;document.getElementById('fCnt').textContent='📦 '+rows.length+' entries';document.getElementById('stT').innerHTML=last.temp.toFixed(1)+'<span class="sp-unit"> °C</span>';document.getElementById('stH').innerHTML=last.hum.toFixed(1)+'<span class="sp-unit"> %</span>';document.getElementById('stA').innerHTML=avg+'<span class="sp-unit"> °C</span>';document.getElementById('stR').textContent=rows.length;document.getElementById('tbadge').textContent=rows.length+' entries';const st=getStatus(last.temp,last.hum);const fa=document.getElementById('falert');const ft=document.getElementById('fatxt');if(st==='Normal'){fa.className='fn-alert fa-ok';ft.textContent='Conditions normal';}else{fa.className='fn-alert fa-warn';ft.textContent='⚠ '+st;}}
+function renderChart(){const rows=fRows().slice(-50);chart.data.labels=rows.map(r=>r.time);chart.data.datasets[0].data=rows.map(r=>r.temp);chart.data.datasets[1].data=rows.map(r=>r.hum);chart.update();}
+function renderTable(){const rows=fRows();const tp=tPages();currentPage=Math.min(currentPage,tp);const start=rowsPerPage===Infinity?0:(currentPage-1)*rowsPerPage;const end=rowsPerPage===Infinity?rows.length:Math.min(start+rowsPerPage,rows.length);const tb=document.getElementById('dataTable');tb.innerHTML='';rows.slice(start,end).forEach((r,i)=>{const tr=document.createElement('tr');tr.className='lf';const tCls=r.temp>=35?'vth r':r.temp>=28?'vtm r':'vtl r';const hCls=r.hum>=80?'vhh r':r.hum>=60?'vhm r':'vhl r';const st=getStatus(r.temp,r.hum);const sc=st==='Normal'?'<span class="sch ok">✓ Normal</span>':'<span class="sch warn">⚠ '+st+'</span>';tr.innerHTML=`<td style="color:var(--ink-mute);font-size:0.68rem;">${start+i+1}</td><td class="dc">${r.date}</td><td class="tc">${r.time}</td><td class="${tCls}">${r.temp.toFixed(1)}</td><td class="${hCls}">${r.hum.toFixed(1)}</td><td class="r">${sc}</td>`;tb.appendChild(tr);});document.getElementById('tableInfo').textContent=`${Math.min(start+1,rows.length)}–${end} of ${rows.length}`;document.getElementById('pageInfo').textContent=`Page ${currentPage} of ${tp}`;document.getElementById('prevBtn').disabled=currentPage<=1;document.getElementById('nextBtn').disabled=currentPage>=tp;const pn=document.getElementById('pageNumbers');pn.innerHTML='';const mP=5,pS=Math.max(1,Math.min(currentPage-2,tp-mP+1)),pE=Math.min(tp,pS+mP-1);for(let p=pS;p<=pE;p++){const b=document.createElement('button');b.textContent=p;b.className='pgb'+(p===currentPage?' active':'');b.onclick=()=>{currentPage=p;renderTable();};pn.appendChild(b);}}
+function renderAll(){renderChart();renderStats();renderTable();}
+document.getElementById('applyFilter').onclick=()=>{selDate=document.getElementById('dateFilter').value||null;currentPage=1;renderAll();};
+document.getElementById('clearFilter').onclick=()=>{selDate=null;document.getElementById('dateFilter').value='';currentPage=1;renderAll();};
+document.getElementById('rowsPerPage').onchange=e=>{rowsPerPage=e.target.value==='all'?Infinity:Number(e.target.value);currentPage=1;renderTable();};
+document.getElementById('prevBtn').onclick=()=>{if(currentPage>1){currentPage--;renderTable();}};
+document.getElementById('nextBtn').onclick=()=>{if(currentPage<tPages()){currentPage++;renderTable();}};
+function saveThresholds(){['tTempMin','tTempMax','tHumMin','tHumMax','tEmail','tCooldown'].forEach(id=>document.getElementById(id).classList.remove('err'));['eTempMin','eTempMax','eHumMin','eHumMax','eEmail','eCooldown','eTempRange','eHumRange'].forEach(id=>{const e=document.getElementById(id);e.classList.remove('show');e.style.display='';});const tMin=parseFloat(document.getElementById('tTempMin').value),tMax=parseFloat(document.getElementById('tTempMax').value),hMin=parseFloat(document.getElementById('tHumMin').value),hMax=parseFloat(document.getElementById('tHumMax').value),em=document.getElementById('tEmail').value.trim(),cd=parseInt(document.getElementById('tCooldown').value,10);let ok=true;const se=(f,e)=>{document.getElementById(f).classList.add('err');const el=document.getElementById(e);el.style.display='block';el.classList.add('show');ok=false;};const sm=id=>{const e=document.getElementById(id);e.style.display='block';e.classList.add('show');};if(isNaN(tMin))se('tTempMin','eTempMin');if(isNaN(tMax))se('tTempMax','eTempMax');if(isNaN(hMin))se('tHumMin','eHumMin');if(isNaN(hMax))se('tHumMax','eHumMax');if(!em||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em))se('tEmail','eEmail');if(isNaN(cd)||cd<1)se('tCooldown','eCooldown');if(!isNaN(tMin)&&!isNaN(tMax)&&tMin>=tMax){se('tTempMin','eTempRange');se('tTempMax','eTempRange');sm('eTempRange');}if(!isNaN(hMin)&&!isNaN(hMax)&&hMin>=hMax){se('tHumMin','eHumRange');se('tHumMax','eHumRange');sm('eHumRange');}if(!ok)return;const btn=document.getElementById('saveBtn');btn.disabled=true;btn.textContent='Saving…';db.ref('Thresholds').set({temperature:{min:tMin,max:tMax},humidity:{min:hMin,max:hMax},alertEmail:em,cooldownMin:cd}).then(()=>{toast('✓ Saved!','ok');btn.textContent='Saved ✓';setTimeout(()=>{btn.disabled=false;btn.textContent='Save Thresholds';},2500);}).catch(err=>{toast('Error: '+err.message,'fail');btn.disabled=false;btn.textContent='Save Thresholds';});}
+function toast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.className='show '+type;setTimeout(()=>t.className='',3500);}
 </script>
 </body>
 </html>
